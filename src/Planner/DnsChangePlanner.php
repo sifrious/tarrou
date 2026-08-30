@@ -10,6 +10,7 @@ use Tarrou\Model\ChangePlan;
 use Tarrou\Model\DnsRecord;
 use Tarrou\Model\ObservationSnapshot;
 use Tarrou\Policy\PlanningPolicy;
+use Tarrou\Support\Canonicalizer;
 
 final class DnsChangePlanner
 {
@@ -96,11 +97,13 @@ final class DnsChangePlanner
 
         return new ChangePlan(
             zone: strtolower(rtrim($zone, '.')),
+            desiredRecords: $desired,
             operations: $operations,
             policy: $policy,
             observationFresh: $fresh,
             observationObservedAtIso: $observedAtIso,
-            observationExpiresAtIso: $expiresAtIso
+            observationExpiresAtIso: $expiresAtIso,
+            observationFingerprint: $this->fingerprintRecords($observed)
         );
     }
 
@@ -326,5 +329,15 @@ final class DnsChangePlanner
         $isFresh = $expiresAt->getTimestamp() >= time();
 
         return [$isFresh, $expiresAt->format(DATE_ATOM)];
+    }
+
+    /**
+     * @param list<DnsRecord> $records
+     */
+    private function fingerprintRecords(array $records): string
+    {
+        $normalized = array_map(static fn (DnsRecord $record): array => $record->toArray(), $this->sortRecords($records));
+
+        return hash('sha256', Canonicalizer::encode($normalized));
     }
 }

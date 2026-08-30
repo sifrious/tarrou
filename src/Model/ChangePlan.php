@@ -14,11 +14,13 @@ final class ChangePlan
      */
     public function __construct(
         public readonly string $zone,
+        public readonly array $desiredRecords,
         public readonly array $operations,
         public readonly PlanningPolicy $policy,
         public readonly bool $observationFresh,
         public readonly ?string $observationObservedAtIso,
-        public readonly ?string $observationExpiresAtIso
+        public readonly ?string $observationExpiresAtIso,
+        public readonly string $observationFingerprint
     ) {
     }
 
@@ -50,12 +52,14 @@ final class ChangePlan
     {
         return [
             'zone' => $this->zone,
+            'desired_records' => array_map(static fn (DnsRecord $record): array => $record->toArray(), $this->desiredRecords),
             'operations' => array_map(static fn (ChangeOperation $operation): array => $operation->toArray(), $this->operations),
             'policy' => $this->policy->toArray(),
             'observation' => [
                 'fresh' => $this->observationFresh,
                 'observed_at' => $this->observationObservedAtIso,
                 'expires_at' => $this->observationExpiresAtIso,
+                'fingerprint' => $this->observationFingerprint,
             ],
             'approval' => $this->approvalHook(),
         ];
